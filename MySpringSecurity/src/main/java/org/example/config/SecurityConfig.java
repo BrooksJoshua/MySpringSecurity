@@ -1,14 +1,23 @@
 package org.example.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * @author Joshua.H.Brooks
@@ -37,16 +46,18 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     /**
      * 静态资源放行
+     *
      * @param web
      * @throws Exception
      */
     @Override
     public void configure(WebSecurity web) throws Exception {
-        web.ignoring().antMatchers("/js/**", "/css/**","/images/**");
+        web.ignoring().antMatchers("/js/**", "/css/**", "/images/**");
     }
 
     /**
      * 配置自定义的登陆界面文件路径
+     *
      * @param http
      * @throws Exception
      */
@@ -60,8 +71,26 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .loginProcessingUrl("/doLogin") //⚠️注意一定带前面的/
                 .usernameParameter("uname")
                 .passwordParameter("pwd")
-                .defaultSuccessUrl("/success") //重定向，  调用重载方法 defaultSuccessUrl(defaultSuccessUrl, false); 如果显示设置成true，就和successForwardUrl("/success")的功能效果一致了。 所以只用配置一个即可
-                .successForwardUrl("/success") // 服务端跳转
+                //.defaultSuccessUrl("/success") //重定向，  调用重载方法 defaultSuccessUrl(defaultSuccessUrl, false); 如果显示设置成true，就和successForwardUrl("/success")的功能效果一致了。 所以只用配置一个即可
+                //.successForwardUrl("/success") // 服务端跳转
+                .successHandler( //配置了successHandler后在里面设置 response.setContentType("application/json;charset=utf-8");表示登陆成功不是跳转页面而是返回JSON数据。
+//                        new AuthenticationSuccessHandler() {
+//                            @Override
+//                            public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+//                                //...
+//                            }
+//                        }
+                        /**
+                         *  用lambda表达式代替上面的匿名对象，
+                         */
+                        (request,response,authentication)->{
+                            response.setContentType("application/json;charset=utf-8");
+                            PrintWriter out = response.getWriter();
+                            out.write(new ObjectMapper().writeValueAsString(authentication)); // 将authentication.getPrincipal()信息写回客户端。
+                            out.flush();
+                            out.close();
+                        }
+                )
                 //.failureForwardUrl() //服务端跳转
                 //.failureUrl() //重定向
                 //.successHandler()

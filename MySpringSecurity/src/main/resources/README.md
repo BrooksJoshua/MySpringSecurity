@@ -404,3 +404,59 @@ xhr.open("POST","/logout",true);
 xhr.send();
 ```
 发现再去访问之前访问的界面已经跳转到登陆界面了， 表示注销登录成功。
+
+但是在前后端分离的项目中显然访问成功后不应该返回页面而是一段JSON交互。 那么应该怎么定义交互的JSON数据呢？
+还是对 SecurityConfig的configure(HttpSecurity http) 方法 进行修改配置：
+```java
+             //.defaultSuccessUrl("/success") //重定向，  调用重载方法 defaultSuccessUrl(defaultSuccessUrl, false); 如果显示设置成true，就和successForwardUrl("/success")的功能效果一致了。 所以只用配置一个即可
+                //.successForwardUrl("/success") // 服务端跳转
+                .successHandler( //配置了successHandler后在里面设置 response.setContentType("application/json;charset=utf-8");表示登陆成功不是跳转页面而是返回JSON数据。
+//                        new AuthenticationSuccessHandler() {
+//                            @Override
+//                            public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+//                                //...
+//                            }
+//                        }
+                        /**
+                         *  用lambda表达式代替上面的匿名对象，
+                         */
+                        (request,response,authentication)->{
+                            response.setContentType("application/json;charset=utf-8");
+                            PrintWriter out = response.getWriter();
+                            out.write(new ObjectMapper().writeValueAsString(authentication)); // 将authentication信息写回客户端。
+                            out.flush();
+                            out.close();
+                        }
+                )
+```
+重启项目， 登陆后发现返回已经从原来的页面编程JSON数据：
+```json
+{
+  "authorities": [
+    {
+      "authority": "ROLE_admin"
+    }
+  ],
+  "details": {
+    "remoteAddress": "0:0:0:0:0:0:0:1",
+    "sessionId": null
+  },
+  "authenticated": true,
+  "principal": {
+    "password": null,
+    "username": "aaa",
+    "authorities": [
+      {
+        "authority": "ROLE_admin"
+      }
+    ],
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "credentialsNonExpired": true,
+    "enabled": true
+  },
+  "credentials": null,
+  "name": "aaa"
+}
+```
+![登陆成功后的Auth的JSON返回](Spring-security/登陆成功后的Auth的JSON返回.png)
