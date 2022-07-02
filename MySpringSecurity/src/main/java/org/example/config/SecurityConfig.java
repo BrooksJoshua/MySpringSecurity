@@ -2,6 +2,7 @@ package org.example.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.model.RespBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
@@ -16,10 +17,15 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
+import javax.sql.DataSource;
 import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * @author Joshua.H.Brooks
@@ -34,11 +40,31 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return NoOpPasswordEncoder.getInstance(); //不对密码进行加密， 暂时这样
     }
 
+//    @Bean
+//    protected UserDetailsService userDetailsService() {
+//        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+//        manager.createUser(User.withUsername("Alex").password("123").roles("admin").build());
+//        manager.createUser(User.withUsername("Brooks").password("456").roles("user").build());
+//        return manager;
+//    }
+
+    @Autowired
+    DataSource dataSource;
+
     @Bean
-    protected UserDetailsService userDetailsService() {
-        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
-        manager.createUser(User.withUsername("Alex").password("123").roles("admin").build());
-        manager.createUser(User.withUsername("Brooks").password("456").roles("user").build());
+    @Override
+    public UserDetailsService userDetailsServiceBean() throws Exception {
+        JdbcUserDetailsManager manager = new JdbcUserDetailsManager();
+        manager.setDataSource(dataSource);
+        if(!manager.userExists("Zed")){
+            manager.createUser(User.withUsername("Zed").password("111").roles("ADMIN").build());
+        }
+        if(!manager.userExists("Yuki")){
+            manager.createUser(User.withUsername("Yuki").password("222").roles("USER").build());
+        }
+        if(!manager.userExists("Xoxo")){
+            manager.createUser(User.withUsername("Xoxo").password("333").roles("GUEST").build());
+        }
         return manager;
     }
 
@@ -49,7 +75,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     RoleHierarchy roleHierarchy() {
         RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
-        hierarchy.setHierarchy("ROLE_admin > ROLE_user");
+        hierarchy.setHierarchy("ROLE_admin > ROLE_user > ROLE_GUEST");
         return hierarchy;
     }
 
