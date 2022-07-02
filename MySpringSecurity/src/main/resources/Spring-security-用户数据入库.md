@@ -112,26 +112,34 @@ public class JdbcUserDetailsManager extends JdbcDaoImpl implements UserDetailsMa
 ```
 
 注意⚠️ 
-1。 因为要与数据库交互, 不要忘记注入DataSource对象。
+1. 因为要与数据库交互, 不要忘记注入DataSource对象。
 ```java
     @Autowired
     DataSource dataSource;
 ```
-2。 角色前面不要加ROLE_ 否则会报错  
-![](Spring-security-用户数据入库/角色名配置错误引发异常.png)
+2. 角色前面不要加ROLE_ 否则会报错  
+![角色名配置错误引发异常](Spring-security-用户数据入库/角色名配置错误引发异常.png)
+
+3. 角色名称大小写敏感而且要与原来角色继承配置里的配置保持一致。否则也会报错。
+![角色名称一致大小写敏感](Spring-security-用户数据入库/角色名称一致大小写敏感.png)
+![验证角色继承User能访问guest角色的权限接口](Spring-security-用户数据入库/验证角色继承.png)
+
+4. 当然要也要记得在configure(HttpSecurity http)里加上 `.antMatchers("/guest/**").hasRole("guest")`
+
+
+
 
 查看源码发现是已经为其添加了ROLE_前缀了
 ````java
-		public UserBuilder roles(String... roles) {
-			List<GrantedAuthority> authorities = new ArrayList<>(
-					roles.length);
-			for (String role : roles) {
-				Assert.isTrue(!role.startsWith("ROLE_"), () -> role
-						+ " cannot start with ROLE_ (it is automatically added)");
-				authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
-			}
-			return authorities(authorities);
-		}
+public UserBuilder roles(String... roles) {
+    List<GrantedAuthority> authorities = new ArrayList<>(
+            roles.length);
+    for (String role : roles) {
+        Assert.isTrue(!role.startsWith("ROLE_"), () -> role
+        + " cannot start with ROLE_ (it is automatically added)");
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+    }
+    return authorities(authorities);}
 ````
 ![](Spring-security-用户数据入库/角色名异常源码原理.png)
 

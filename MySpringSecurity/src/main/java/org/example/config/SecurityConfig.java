@@ -57,13 +57,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         JdbcUserDetailsManager manager = new JdbcUserDetailsManager();
         manager.setDataSource(dataSource);
         if(!manager.userExists("Zed")){
-            manager.createUser(User.withUsername("Zed").password("111").roles("ADMIN").build());
+            manager.createUser(User.withUsername("Zed").password("111").roles("admin").build());
         }
         if(!manager.userExists("Yuki")){
-            manager.createUser(User.withUsername("Yuki").password("222").roles("USER").build());
+            manager.createUser(User.withUsername("Yuki").password("222").roles("user").build());
         }
         if(!manager.userExists("Xoxo")){
-            manager.createUser(User.withUsername("Xoxo").password("333").roles("GUEST").build());
+            manager.createUser(User.withUsername("Xoxo").password("333").roles("guest").build());
         }
         return manager;
     }
@@ -75,7 +75,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     RoleHierarchy roleHierarchy() {
         RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
-        hierarchy.setHierarchy("ROLE_admin > ROLE_user > ROLE_GUEST");
+        hierarchy.setHierarchy("ROLE_admin > ROLE_user > ROLE_guest");
         return hierarchy;
     }
 
@@ -116,6 +116,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http.authorizeRequests()
                 .antMatchers("/admin/**").hasRole("admin")
                 .antMatchers("/user/**").hasRole("user")
+                .antMatchers("/guest/**").hasRole("guest")
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()

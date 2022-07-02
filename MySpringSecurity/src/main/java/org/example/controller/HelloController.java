@@ -34,6 +34,12 @@ public class HelloController {
         return "user hello接口, 角色用户: \t" + getRoleAndUsername();
     }
 
+    @GetMapping("/guest/hello")
+    public String guest() {
+        return "guest hello接口, 角色用户: \t" + getRoleAndUsername();
+    }
+
+
     String getRoleAndUsername() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         //list.stream().skip(list.size() - 1).findFirst().orElse("no last element");
