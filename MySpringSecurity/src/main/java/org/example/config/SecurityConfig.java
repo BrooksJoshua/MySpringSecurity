@@ -1,22 +1,24 @@
 package org.example.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.model.RespBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.authentication.*;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.io.PrintWriter;
 
 /**
@@ -32,17 +34,39 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return NoOpPasswordEncoder.getInstance(); //不对密码进行加密， 暂时这样
     }
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.inMemoryAuthentication()
-                .withUser("aaa")
-                .password("111")
-                .roles("admin")
-                .and()
-                .withUser("bbb")
-                .password("222")
-                .roles("admin");
+    @Bean
+    protected UserDetailsService userDetailsService() {
+        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+        manager.createUser(User.withUsername("Alex").password("123").roles("admin").build());
+        manager.createUser(User.withUsername("Brooks").password("456").roles("user").build());
+        return manager;
     }
+
+    /**
+     * 角色继承配置
+     * @return
+     */
+    @Bean
+    RoleHierarchy roleHierarchy() {
+        RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
+        hierarchy.setHierarchy("ROLE_admin > ROLE_user");
+        return hierarchy;
+    }
+
+    /**
+     * 这种方式优先级高于上面那种， 两个都配置的情况下， 只有这个会生效， 用上面配置的用户信息登陆会报BadCredential
+     */
+//    @Override
+//    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+//        auth.inMemoryAuthentication()
+//                .withUser("aaa")
+//                .password("111")
+//                .roles("admin")
+//                .and()
+//                .withUser("bbb")
+//                .password("222")
+//                .roles("admin");
+//    }
 
     /**
      * 静态资源放行
@@ -64,6 +88,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
+                .antMatchers("/admin/**").hasRole("admin")
+                .antMatchers("/user/**").hasRole("user")
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()
@@ -94,16 +120,60 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 //.failureForwardUrl() //服务端跳转
                 //.failureUrl() //重定向
                 //.successHandler()
-                //.failureHandler() //两个handler多用于前后端分离的场景。
+                .failureHandler(
+                        (request,response,exception)->{
+                            RespBean respBean = RespBean.build();
+                            response.setContentType("application/json;charset=utf-8");
+                            PrintWriter out = response.getWriter();
+                            if(exception instanceof LockedException){
+                                respBean.setMsg("账号被锁定");
+                            }else if(exception instanceof CredentialsExpiredException){
+                                respBean.setMsg("密码过期");
+                            }else if(exception instanceof AccountExpiredException){
+                                respBean.setMsg("账户过期");
+                            }else if(exception instanceof BadCredentialsException){
+                                respBean.setMsg("用户名或密码不对");
+                            }else if(exception instanceof DisabledException){
+                                respBean.setMsg("账户禁用");
+                            }else{
+                                respBean.setMsg("未知错误\\n"+exception.getLocalizedMessage());
+                            }
+                            respBean.setStatus(500);
+                            out.write(new ObjectMapper().writeValueAsString(respBean));
+                            out.flush();
+                            out.close();
+                        }
+                ) //两个handler多用于前后端分离的场景。
                 .permitAll()
                 .and()
                 .logout() //如果不配置，访问http://localhost:9999/logout 后会跳转到http://localhost:9999/login.html页面, 能在浏览器直接访问 侧面说明登陆默认是get请求
                 //.logoutUrl("/logout") // 自定义登出的访问路径， 还是GET方式
                 .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "POST")) // 如果业务场景必须使用POST登出， 则可以这样配置
-                .logoutSuccessUrl("/login.html")// 此行可以不配置， 默认注销登陆成功就是跳转到登陆界面
+                //.logoutSuccessUrl("/login.html")// 此行可以不配置， 默认注销登陆成功就是跳转到登陆界面
+                .logoutSuccessHandler((request,response,authentication)->{
+                    PrintWriter out = response.getWriter();
+                    RespBean respBean = RespBean.build();
+                    respBean.setMsg("注销登录成功");
+                    respBean.setStatus(200);
+                    response.setContentType("application/json;charset=utf-8");
+                    out.write(new ObjectMapper().writeValueAsString(respBean));
+                    out.flush();
+                    out.close();
+                })
                 .invalidateHttpSession(true) //注销登陆后使session失效， 默认是true也可以不配置
                 .clearAuthentication(true)//清除认证信息，默认也是true  也可以不配置
                 .and()
-                .csrf().disable();
+                .csrf().disable()
+                .exceptionHandling()
+                .authenticationEntryPoint((request,response,exception)->{
+                    RespBean respBean = RespBean.build();
+                    response.setContentType("application/json;charset=utf-8");
+                    PrintWriter out = response.getWriter();
+                    respBean.setMsg("尚未登陆!");
+                    respBean.setStatus(401);
+                    out.write(new ObjectMapper().writeValueAsString(respBean));
+                    out.flush();
+                    out.close();
+                });
     }
 }

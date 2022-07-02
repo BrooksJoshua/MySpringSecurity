@@ -1,4 +1,5 @@
-新建项目并添加依赖 pom.xml：
+# 新建项目并添加依赖 pom.xml：
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 
@@ -51,7 +52,8 @@
 ```
 ![pomDependency](Spring-security/pomDependency.png)
 
-新建Controller
+# 新建Controller
+
 ```java
 package org.example.controller;
 
@@ -71,7 +73,8 @@ public class HiController {
     }
 }
 ```
-启动主启动类:
+# 启动主启动类:
+
 ```java
 package org.example;
 
@@ -93,7 +96,9 @@ public class App
 访问: `http://localhost:9999/hi` 可以看见页面跳转到了 `http://localhost:9999/login`. 如下：
 用 user / f79e5558-9195-440d-8770-070c2b0ee5a0 就可以登陆访问到了。
 ![登陆界面](Spring-security/login.png)
-分析源码：
+
+# 分析源码：
+
 ```java
 package org.springframework.boot.autoconfigure.security.servlet;
 
@@ -115,9 +120,12 @@ public class UserDetailsServiceAutoConfiguration {
     }
 }
 ```
-之所以会使用是因为
+
+
+# 自定义用户密码
 
 如果想要自定义用户密码可以在yml文件中配置：
+
 ```yaml
 server:
   port: 9999
@@ -127,10 +135,12 @@ spring:
       name: Joshua
       password: 123456
 ```
-然后重启发现登陆时输入原来的用户。
-然后启动既可以用 `Joshua / 123456`  登陆了。
+然后重启发现登陆时输入原来的用户。然后启动既可以用 `Joshua / 123456`  登陆了。
+
+# Java代码配置用户
 
 当然也可以通过Java代码进行用户的配置
+
 ```java
 package org.example.config;
 
@@ -169,12 +179,14 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 ```
 重启后发现用 `aaa / 111 和 bbb / 222`都可以登陆。
 
+# 自定义表单登录页
 
-3.自定义表单登录页
 默认的表单登录有点简陋 很多时候我们需要对登录页面进行改造，那我们可以自定义一个登录页面。
 
-3.1 服务端定义
+##  服务端定义
+
 然后接下来我们继续完善前面的 SecurityConfig 类，继续重写它的 configure(WebSecurity web) 和 configure(HttpSecurity http) 方法，如下：
+
 ```java
 package org.example.config;
 
@@ -242,12 +254,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 ```
 
 1. web.ignoring() 用来配置忽略掉的 URL 地址，一般对于静态文件，我们可以采用此操作。
+
 2. 如果我们使用 XML 来配置 Spring Security ，里边会有一个重要的标签 <http>，HttpSecurity 提供的配置方法 都对应了该标签。
+
 3. authorizeRequests 对应了 <intercept-url>。
+
 4. formLogin 对应了 <formlogin>。
+
 5. and 方法表示结束当前标签，上下文回到HttpSecurity，开启新一轮的配置。
+
 6. permitAll 表示登录相关的页面/接口不要被拦截。
+
 7. 最后记得关闭 csrf ，关于 csrf 问题后面会详细讲解。
+
+   
+
+## 自定义登陆页面
 
 按照上main的配置在resource目录下新建文档static/login.html
 ```html
@@ -279,6 +301,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 </body>
 </html>
 ```
+## 测试
+
 重启项目访问: `http://localhost:9999/hi` 发现跳转后的登陆界面如下所示
 ![](Spring-security/自定义登陆界面.png)
 
@@ -290,7 +314,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 `POST http://localhost:8080/login.html` <br/>
 前面的 GET 请求用来获取登录页面，后面的 POST 请求用来提交登录数据。
 其实是可以分开配置的！
+
+## 分开配置登陆页面和登陆接口
+
 首先，在 SecurityConfig的configure(HttpSecurity http) 方法中，我们可以通过 loginProcessingUrl 方法来指定登录接口地址，如下：
+
 ```java
 .loginProcessingUrl("/doLogin") //⚠️ 一定带前面的/
 ```
@@ -304,10 +332,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 另外， 还可以通过指定参数的方式修改前端提交用户密码的参数名称,见下图：
 ![指定用户名密码参数名称](Spring-security/指定用户名密码参数名称.png)
 访问`http://localhost:9999/login.html`登陆成功后会默认跳转到``http://localhost:9999/`页面
+
+## 登陆成功默认跳转页
+
 但是controller里没有配置"/"的路径响应。 所以会出现下图所示的404报错。
 ![登陆成功默认跳转页面](Spring-security/登陆成功默认跳转页面.png)
 同样也可以登陆成功的跳转的页面也可以进行自定义配置
+
+## 自定义登陆成功跳转页
+
 还是在 SecurityConfig的configure(HttpSecurity http) 方法中添加如下行即可：
+
 ```java
 .successForwardUrl("/success")
 ```
@@ -336,30 +371,33 @@ public class HiController {
     }
 }
 ```
+## 测试
+
 然后再次访问登陆界面 `http://localhost:9999/login.html` 登陆成功后界面跳转如下：
 ![自定义的登陆成功的跳转](Spring-security/自定义的登陆成功的跳转.png)
 
 在 Spring Security 中，和登录成功重定向 URL 相关的方法有两个：
 
-defaultSuccessUrl
-successForwardUrl
-这两个咋看没什么区别，实际上内藏乾坤。
+defaultSuccessUrl & successForwardUrl 这两个咋看没什么区别，实际上内藏乾坤。
 
 首先我们在配置的时候，defaultSuccessUrl 和 successForwardUrl 只需要配置一个即可，具体配置哪个，则要看你的需求，两个的区别如下：
 
-1. defaultSuccessUrl 有一个重载的方法，我们先说一个参数的 defaultSuccessUrl 方法。如果我们在 defaultSuccessUrl 中指定登录成功的跳转页面为 /index，此时分两种情况，如果你是直接在浏览器中输入的登录地址，登录成功后，就直接跳转到 /index，如果你是在浏览器中输入了其他地址，例如 http://localhost:8080/hello，结果因为没有登录，又重定向到登录页面，此时登录成功后，就不会来到 /index ，而是来到 /hello 页面。
-2. defaultSuccessUrl 还有一个重载的方法，第二个参数如果不设置默认为 false，也就是我们上面的的情况，如果手动设置第二个参数为 true，则 defaultSuccessUrl 的效果和 successForwardUrl 一致。
-3. successForwardUrl 表示不管你是从哪里来的，登录后一律跳转到 successForwardUrl 指定的地址。例如 successForwardUrl 指定的地址为 /index ，你在浏览器地址栏输入 http://localhost:8080/hello，结果因为没有登录，重定向到登录页面，当你登录成功之后，就会服务端跳转到 /index 页面；或者你直接就在浏览器输入了登录页面地址，登录成功后也是来到 /index。
+1. **defaultSuccessUrl 有一个重载的方法，我们先说一个参数的 defaultSuccessUrl 方法。如果我们在 defaultSuccessUrl 中指定登录成功的跳转页面为 /index，此时分两种情况，如果你是直接在浏览器中输入的登录地址，登录成功后，就直接跳转到 /index，如果你是在浏览器中输入了其他地址，例如 http://localhost:8080/hello，结果因为没有登录，又重定向到登录页面，此时登录成功后，就不会来到 /index ，而是来到 /hello 页面。**
+2. **defaultSuccessUrl 还有一个重载的方法，第二个参数如果不设置默认为 false，也就是我们上面的的情况，如果手动设置第二个参数为 true，则 defaultSuccessUrl 的效果和 successForwardUrl 一致。**
+3. **successForwardUrl 表示不管你是从哪里来的，登录后一律跳转到 successForwardUrl 指定的地址。例如 successForwardUrl 指定的地址为 /index ，你在浏览器地址栏输入 http://localhost:8080/hello，结果因为没有登录，重定向到登录页面，当你登录成功之后，就会服务端跳转到 /index 页面；或者你直接就在浏览器输入了登录页面地址，登录成功后也是来到 /index。**
 
-登录失败回调
+## 登录失败回调
+
 与登录成功相似，登录失败也是有两个方法：
 
 failureForwardUrl
 failureUrl
 这两个方法在设置的时候也是设置一个即可。failureForwardUrl 是登录失败之后会发生服务端跳转，failureUrl 则在登录失败之后，会发生重定向。
 
-注销登陆
+## 注销登陆
+
 注销登录的默认接口是 /logout，我们也可以配置。同样也可以自定义配置， 默认是GET方式的注销登陆(下面配置后的注释有解释)。此处我们只针对POST请求进行演示
+
 ```java
      @Override
 protected void configure(HttpSecurity http) throws Exception {
@@ -389,6 +427,8 @@ protected void configure(HttpSecurity http) throws Exception {
         .csrf().disable();
         }
 ```
+## 测试
+
 重启项目，首先访问login.html登陆成功后显示：
 ![自定义的登陆成功的跳转](Spring-security/自定义的登陆成功的跳转.png)
 然后在浏览器上手动输入访问: `http://localhost:9999/logout` 回车发现：
@@ -405,8 +445,14 @@ xhr.send();
 ```
 发现再去访问之前访问的界面已经跳转到登陆界面了， 表示注销登录成功。
 
+# JSON数据交互
+
 但是在前后端分离的项目中显然访问成功后不应该返回页面而是一段JSON交互。 那么应该怎么定义交互的JSON数据呢？
+
+## 登陆成功JSON返回
+
 还是对 SecurityConfig的configure(HttpSecurity http) 方法 进行修改配置：
+
 ```java
              //.defaultSuccessUrl("/success") //重定向，  调用重载方法 defaultSuccessUrl(defaultSuccessUrl, false); 如果显示设置成true，就和successForwardUrl("/success")的功能效果一致了。 所以只用配置一个即可
                 //.successForwardUrl("/success") // 服务端跳转
@@ -460,3 +506,211 @@ xhr.send();
 }
 ```
 ![登陆成功后的Auth的JSON返回](Spring-security/登陆成功后的Auth的JSON返回.png)
+
+## 登陆异常JSON返回
+
+同理，登陆异常的JSON数据交互模式也可以通过配置实现如下：
+
+```java
+   .failureHandler(
+                        (request,response,exception)->{
+                            RespBean respBean = RespBean.build();
+                            response.setContentType("application/json;charset=utf-8");
+                            PrintWriter out = response.getWriter();
+                            if(exception instanceof LockedException){
+                                respBean.setMsg("账号被锁定");
+                            }else if(exception instanceof CredentialsExpiredException){
+                                respBean.setMsg("密码过期");
+                            }else if(exception instanceof AccountExpiredException){
+                                respBean.setMsg("账户过期");
+                            }else if(exception instanceof BadCredentialsException){
+                                respBean.setMsg("用户名或密码不对");
+                            }else if(exception instanceof DisabledException){
+                                respBean.setMsg("账户禁用");
+                            }else{
+                                respBean.setMsg("未知错误\\n"+exception.getLocalizedMessage());
+                            }
+                            respBean.setStatus(500);
+                            out.write(new ObjectMapper().writeValueAsString(respBean));
+                            out.flush();
+                            out.close();
+                        }
+                )
+```
+ 新建返回异常的JSON对象实体
+ ```java
+package org.example.model;
+
+/**
+ * @author Joshua.H.Brooks
+ * @description
+ * @date 2022-07-01 16:28
+ */
+public class RespBean {
+    /**
+     * 状态码
+     */
+    private Integer status;
+    /**
+     * 异常信息
+     */
+    private String msg;
+    /**
+     *
+     */
+    private Object obj;
+
+    public static RespBean build() {
+        return new RespBean();
+    }
+
+    public static RespBean ok(String msg) {
+        return new RespBean(200, msg, null);
+    }
+
+    public static RespBean ok(String msg, Object obj) {
+        return new RespBean(200, msg, obj);
+    }
+
+    public static RespBean error(String msg) {
+        return new RespBean(500, msg, null);
+    }
+
+    public static RespBean error(String msg, Object obj) {
+        return new RespBean(500, msg, obj);
+    }
+
+    private RespBean() {
+    }
+
+    private RespBean(Integer status, String msg, Object obj) {
+        this.status = status;
+        this.msg = msg;
+        this.obj = obj;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public RespBean setStatus(Integer status) {
+        this.status = status;
+        return this;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public RespBean setMsg(String msg) {
+        this.msg = msg;
+        return this;
+    }
+
+    public Object getObj() {
+        return obj;
+    }
+
+    public RespBean setObj(Object obj) {
+        this.obj = obj;
+        return this;
+    }
+}
+ ```
+重启项目故意输错密码登陆，发现返回信息如下：
+```json
+{
+  "status": 500,
+  "msg": "用户名或密码不对",
+  "obj": null
+}
+```
+![登陆异常后的JSON数据返回](Spring-security/登陆异常后的JSON数据返回.png)
+
+## 关于用BadCredentialsException隐藏UsernameNotFoundException的说明
+
+另外值得一提的是， spring security中无论是用户名还是密码输入错误， 默认返回的都是BadCredentialException。 其具体原因是防止给出太具体的原因将系统处于危险之中。
+至于底层实现可以查看类`org.springframework.security.authentication.dao.AbstractUserDetailsAuthenticationProvider`的源码：
+
+```java
+ try {
+    user = retrieveUser(username,
+    (UsernamePasswordAuthenticationToken) authentication);
+    }
+catch (UsernameNotFoundException notFound) {
+    logger.debug("User '" + username + "' not found");
+    if (hideUserNotFoundExceptions) {
+        throw new BadCredentialsException(messages.getMessage("AbstractUserDetailsAuthenticationProvider.badCredentials","Bad credentials"));
+        }
+    else {
+        throw notFound;
+    }
+}
+```
+![用BadCredential隐藏UsernameNotFoundException异常原理](Spring-security/用BadCredential隐藏UsernameNotFoundException异常原理.png)
+
+## 如何自定义显示UsernameNotFoundException
+
+那么如果一定要显示的提示用户是用户名错误的异常， 可以参考如下三个思路
+
+### 方式1：重新定义BadCredentialException的Msg
+
+```java
+
+```
+### 方式2：自定义异常
+
+
+
+### 方式3：注册AbstractUserDetailsAuthenticationProvider 的Bean，将hideUserNotFoundExceptions设置成false。
+
+
+
+## 未认证接口JSON 交互
+
+前后端一体的项目，如果访问问认证的接口(未登陆访问)则跳转到登陆页面，但是对于前后端分离的项目， 应该是返回JSON数据提示用户先登陆。
+还是对 configure(HttpSecurity http)方法进行如下配置即可打到该目的。
+
+```java
+.exceptionHandling()
+        .authenticationEntryPoint((request,response,exception)->{
+        RespBean respBean = RespBean.build();
+        response.setContentType("application/json;charset=utf-8");
+        PrintWriter out = response.getWriter();
+        respBean.setMsg("尚未登陆!");
+        respBean.setStatus(401);
+        out.write(new ObjectMapper().writeValueAsString(respBean));
+        out.flush();
+        out.close();
+        });
+```
+重启项目, 再次直接访问: `http://localhost:9999/hi` 发现页面如下， 即已经返回JSON提示信息了。
+![未登陆返回的JSON提示](Spring-security/未登陆返回的JSON提示.png)
+
+```json
+{
+  "status": 401,
+  "msg": "尚未登陆!",
+  "obj": null
+}
+```
+
+### 注销登录JSON交互
+
+同样的， 之前介绍的注销登录的跳转也用JSON数据交互，需要进行如下修改：
+```java
+ .logoutSuccessHandler((request,response,authentication)->{
+    PrintWriter out = response.getWriter();
+    RespBean respBean = RespBean.build();
+    respBean.setMsg("注销登录成功");
+    respBean.setStatus(200);
+    response.setContentType("application/json;charset=utf-8");
+    out.write(new ObjectMapper().writeValueAsString(respBean));
+    out.flush();
+    out.close();
+ })
+```
+然后重启项目， 登陆成功后， 注销登陆发现已经返回JSON数据。
+
+
+
