@@ -6,24 +6,34 @@
 </head>
 <body>
 <!--    <form action="/login.html" method="post">-->
-    <form action="/doLogin" method="post">
-        <div class="input">
-            <label for="name">用户名</label>
-            <!-- 这里的name属性和下面的name属性的值只能分别是: username和password， 如果想改成别的需要在Java 代码中设置-->
-            <input type="text" name="uname" id="name">
-            <span class="spin"></span>
-        </div>
-        <div class="input">
-            <label for="pass">密码</label>
-            <input type="password" name="pwd" id="pass">
-            <span class="spin"></span>
-        </div>
-        <div class="button login">
-            <button type="submit">
-                <span>登录</span>
-                <i class="fa fa-check"></i>
-            </button>
-        </div>
-    </form>
+<form action="/doLogin" method="post">
+    <div class="input">
+        <label for="name">用户名</label>
+        <!-- 这里的name属性和下面的name属性的值只能分别是: username和password， 如果想改成别的需要在Java 代码中设置-->
+        <input type="text" name="uname" id="name">
+        <span class="spin"></span>
+    </div>
+    <div class="input">
+        <label for="pass">密码</label>
+        <input type="password" name="pwd" id="pass">
+        <span class="spin"></span>
+    </div>
+<!--    <div class="input">-->
+<!--        <input type="text" name="code" id="vCode">-->
+<!--        <label for="rememberMe">验证码:</label>-->
+<!--    </div>-->
+    <div class="input">
+        <input type="radio" name="remMe" id="rememberMe">
+        <span class="spin"></span>
+        <label for="rememberMe">记住我</label>
+    </div>
+    <div class="button login">
+        <button type="submit">
+            <span>登录</span>
+            <i class="fa fa-check"></i>
+        </button>
+    </div>
+
+</form>
 </body>
 </html>

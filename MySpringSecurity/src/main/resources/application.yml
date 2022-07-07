@@ -1,13 +1,29 @@
 server:
   port: 9999
 spring:
-  security:
-    user:
-      name: Joshua
-      password: 123
-      roles: admin
+#  security:
+#    user:
+#      name: Joshua
+#      password: 123
+#      roles: admin
   datasource:
-    url: jdbc:mysql://localhost:3306/springsecurity?useUnicode=true&serverTimezone=Asia/Shanghai&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false
+    url: jdbc:mysql://localhost:3306/springsecurityMybatis?useUnicode=true&serverTimezone=Asia/Shanghai&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false
     username: root
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver
+#  jpa:
+#    show-sql: true
+#    hibernate:
+#      ddl-auto: update
+#    database-platform: mysql
+#    properties:
+#      hibernate:
+#        dialect: org.hibernate.dialect.MySQL8Dialect
+logging:
+  level:
+    org.example.dao: DEBUG
+    org.springframework.jdbc.core.JdbcTemplate: DEBUG
+mybatis:
+  mapper-locations: classpath:mapper/*Mapper.xml
+  configuration:
+    map-underscore-to-camel-case: true

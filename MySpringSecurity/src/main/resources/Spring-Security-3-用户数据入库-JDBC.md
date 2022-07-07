@@ -1,3 +1,11 @@
+---
+title: Spring-Security-3-用户数据入库-JDBC
+date: 2022-07-03 21:31:48
+tags: [Spring-Security]
+categories: [安全框架]
+top: 55
+---
+
 之前的章节中, Spring Security 使用的用户数据都是内存中的。 但是项目中，大部分情况下都是自己设计权限数据库
 不过，Spring Security 也给我们提供了一个它自己设计好的权限数据库，这里我们先来看看这是怎么回事！先来学这个简单的，然后我们再去看复杂的。
 
@@ -6,7 +14,7 @@ UserDetailService
 Spring Security 支持多种不同的数据源，这些不同的数据源最终都将被封装成 UserDetailsService 的实例，
 既可以自己封装实现UserDetailsService接口的类，也可以使用系统默认提供的 UserDetailsService 实例，例如之前文章中介绍的 InMemoryUserDetailsManager。
 为了弄清楚具体的原理， 先看看UserDetailsService的继承关系。
-![UserDetailsService继承关系](Spring-security-用户数据入库/UserDetailsService继承关系.png)
+![UserDetailsService继承关系](Spring-Security-3-用户数据入库-JDBC/UserDetailsService继承关系.png)
 
 2.JdbcUserDetailsManager
 JdbcUserDetailsManager 自己提供了一个数据库模型，这个数据库模型保存在如下位置：
@@ -27,8 +35,11 @@ create table authorities
 );
 create unique index ix_auth_username on authorities (username, authority);
 ```
+而且观察该类中的CRUD脚本中使用的字段也能看出：
+![JdbcUserDetailsManager源码](Spring-Security-3-用户数据入库-JDBC/JdbcUserDetailsManager源码.png)
+
 由于Spring Security底层建表使用的DB引擎是HSQL， 所以想要在本地MySQL建立与上面一样的表和索引需要对语法进行替换，然后在本地建库建表，如下
-```mysql
+```sql
 # 建库
 create database if not exists springsecurity;
 use springsecurity;
@@ -118,11 +129,11 @@ public class JdbcUserDetailsManager extends JdbcDaoImpl implements UserDetailsMa
     DataSource dataSource;
 ```
 2. 角色前面不要加ROLE_ 否则会报错  
-![角色名配置错误引发异常](Spring-security-用户数据入库/角色名配置错误引发异常.png)
+![角色名配置错误引发异常](Spring-Security-3-用户数据入库-JDBC/角色名配置错误引发异常.png)
 
 3. 角色名称大小写敏感而且要与原来角色继承配置里的配置保持一致。否则也会报错。
-![角色名称一致大小写敏感](Spring-security-用户数据入库/角色名称一致大小写敏感.png)
-![验证角色继承User能访问guest角色的权限接口](Spring-security-用户数据入库/验证角色继承.png)
+![角色名称一致大小写敏感](Spring-Security-3-用户数据入库-JDBC/角色名称一致大小写敏感.png)
+![验证角色继承User能访问guest角色的权限接口](Spring-Security-3-用户数据入库-JDBC/验证角色继承.png)
 
 4. 当然要也要记得在configure(HttpSecurity http)里加上 `.antMatchers("/guest/**").hasRole("guest")`
 
@@ -141,7 +152,7 @@ public UserBuilder roles(String... roles) {
     }
     return authorities(authorities);}
 ````
-![](Spring-security-用户数据入库/角色名异常源码原理.png)
+![](Spring-Security-3-用户数据入库-JDBC/角色名异常源码原理.png)
 
 3. 添加pom依赖和修改yml
 ```xml
@@ -170,9 +181,8 @@ spring:
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver
 ```
-
+~~StrikeThrough~~
 测试
 启动项目， 发现后台已经插入了上面三个用户的信息了。
-![用户信息](Spring-security-用户数据入库/用户信息.png)
-![角色信息](Spring-security-用户数据入库/角色信息.png)
-
+![用户信息](Spring-Security-3-用户数据入库-JDBC/用户信息.png)
+![角色信息](Spring-Security-3-用户数据入库-JDBC/角色信息.png)

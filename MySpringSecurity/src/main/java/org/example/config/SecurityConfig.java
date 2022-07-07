@@ -2,6 +2,8 @@ package org.example.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.model.RespBean;
+import org.example.service.ClientService;
+import org.example.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,13 +21,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 
 /**
  * @author Joshua.H.Brooks
@@ -49,24 +51,46 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //    }
 
     @Autowired
-    DataSource dataSource;
-
-    @Bean
+    UserService userService;
+    @Autowired
+    ClientService clientService;
     @Override
-    public UserDetailsService userDetailsServiceBean() throws Exception {
-        JdbcUserDetailsManager manager = new JdbcUserDetailsManager();
-        manager.setDataSource(dataSource);
-        if(!manager.userExists("Zed")){
-            manager.createUser(User.withUsername("Zed").password("111").roles("admin").build());
-        }
-        if(!manager.userExists("Yuki")){
-            manager.createUser(User.withUsername("Yuki").password("222").roles("user").build());
-        }
-        if(!manager.userExists("Xoxo")){
-            manager.createUser(User.withUsername("Xoxo").password("333").roles("guest").build());
-        }
-        return manager;
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(clientService);
+        //auth.userDetailsService(userService);
     }
+
+
+//    @Autowired
+//    DataSource dataSource;
+
+    //    @Bean
+//    @Override
+//    public UserDetailsService userDetailsServiceBean() throws Exception {
+//        JdbcUserDetailsManager manager = new JdbcUserDetailsManager();
+//        manager.setDataSource(dataSource);
+//        if(!manager.userExists("Zed")){
+//            manager.createUser(User.withUsername("Zed").password("111").roles("admin").build());
+//        }
+//        if(!manager.userExists("Yuki")){
+//            manager.createUser(User.withUsername("Yuki").password("222").roles("user").build());
+//        }
+//        if(!manager.userExists("Xoxo")){
+//            manager.createUser(User.withUsername("Xoxo").password("333").roles("guest").build());
+//        }
+//        return manager;
+//    }
+
+    @Autowired
+    DataSource dataSource;
+//    @Bean
+//    JdbcTokenRepositoryImpl jdbcTokenRepository() {
+//        JdbcTokenRepositoryImpl jdbcTokenRepository = new JdbcTokenRepositoryImpl();
+//        jdbcTokenRepository.setDataSource(dataSource);
+//        //只能执行一次 之后再执行会报错 Table 'persistent_logins' already exists
+//        jdbcTokenRepository.setCreateTableOnStartup(true); //会执行建表脚本，具体可见JdbcTokenRepositoryImpl#initDao()方法
+//        return jdbcTokenRepository;
+//    }
 
     /**
      * 角色继承配置
@@ -75,7 +99,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     RoleHierarchy roleHierarchy() {
         RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
-        hierarchy.setHierarchy("ROLE_admin > ROLE_user > ROLE_guest");
+        hierarchy.setHierarchy("ROLE_super > ROLE_admin > ROLE_user > ROLE_guest");
+        //hierarchy.setHierarchy("super > admin > user > guest");
         return hierarchy;
     }
 
@@ -114,12 +139,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
+                .antMatchers("/verifyCode").permitAll()
+                .antMatchers("/hello").fullyAuthenticated()
+                //.antMatchers("/admin/**").fullyAuthenticated()
                 .antMatchers("/admin/**").hasRole("admin")
                 .antMatchers("/user/**").hasRole("user")
                 .antMatchers("/guest/**").hasRole("guest")
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()
+                //.authenticationDetailsSource(myWebAuthenticationDetailsSource)
                 .loginPage("/login.html")
                 .loginProcessingUrl("/doLogin") //⚠️注意一定带前面的/
                 .usernameParameter("uname")
@@ -159,7 +188,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                             }else if(exception instanceof AccountExpiredException){
                                 respBean.setMsg("账户过期");
                             }else if(exception instanceof BadCredentialsException){
-                                respBean.setMsg("用户名或密码不对");
+                                respBean.setMsg("用户名或密码不对 ");
                             }else if(exception instanceof DisabledException){
                                 respBean.setMsg("账户禁用");
                             }else{
@@ -190,6 +219,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .invalidateHttpSession(true) //注销登陆后使session失效， 默认是true也可以不配置
                 .clearAuthentication(true)//清除认证信息，默认也是true  也可以不配置
                 .and()
+                .rememberMe()
+                .rememberMeParameter("remMe")
+                .key("12345")
+                .userDetailsService(clientService)
+                //.tokenRepository(jdbcTokenRepository())
+                .and()
                 .csrf().disable()
                 .exceptionHandling()
                 .authenticationEntryPoint((request,response,exception)->{
@@ -201,6 +236,38 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     out.write(new ObjectMapper().writeValueAsString(respBean));
                     out.flush();
                     out.close();
-                });
+                })
+                .and()
+                .sessionManagement()
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(true)
+                ;
+    }
+
+    //配置自定义的AuthticationProvider 并注入Spring容器
+//    @Bean
+//    MyAuthenticationProvider myAuthenticationProvider(){
+//        MyAuthenticationProvider myAuthenticationProvider = new MyAuthenticationProvider();
+//        myAuthenticationProvider.setPasswordEncoder(passwordEncoder());
+//        myAuthenticationProvider.setUserDetailsService(clientService);
+//        return myAuthenticationProvider;
+//    }
+
+    //把自定义的AuthticationProvider：MyAuthenticationProvider 交由AuthenticationManager管理。就会在认证时执行里面的逻辑
+//    @Override
+//    @Bean
+//    protected AuthenticationManager authenticationManager() throws Exception {
+//        ArrayList<AuthenticationProvider> pms = new ArrayList<>();
+//        pms.add(myAuthenticationProvider());
+//        return new ProviderManager(pms);
+//    }
+
+    //重构
+    //@Autowired
+    //MyWebAuthenticationDetailsSource myWebAuthenticationDetailsSource;
+
+    @Bean
+    HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
     }
 }

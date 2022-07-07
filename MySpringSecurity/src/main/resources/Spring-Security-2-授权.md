@@ -1,3 +1,11 @@
+---
+title: Spring-Security-2-授权
+date: 2022-07-02 21:31:48
+tags: [Spring-Security]
+categories: [安全框架]
+top: 54
+---
+
 # 1.授权
 
 所谓的授权，就是用户如果要访问某一个资源，我们要去检查用户是否具备这样的权限，如果具备就允许访问，如果不具备，则不允许访问。
@@ -87,9 +95,9 @@ public class HelloController {
 # 补充
 
 如果拦截规则里配置顺序antMatchers 在anyRequest 之后则会报错：
-![配置拦截规则顺序错误报错](Spring-security-授权/配置拦截规则顺序错误报错.png)
+![配置拦截规则顺序错误报错](Spring-Security-2-授权/配置拦截规则顺序错误报错.png)
 其原理是，在`org.springframework.security.config.annotation.web.AbstractRequestMatcherRegistry`类中， 定义anyRequest()方法时， 在第一行断言， 如果之后还有拦截规则就报错
-![拦截规则顺序原理](Spring-security-授权/拦截规则顺序原理.png)
+![拦截规则顺序原理](Spring-Security-2-授权/拦截规则顺序原理.png)
 
 然后启动项目，
 
@@ -97,27 +105,27 @@ public class HelloController {
 
  用`user`角色用户`Brooks` / 456 登陆。 
 
-![](Spring-security-授权/user角色用户登陆.png)
+![](Spring-Security-2-授权/user角色用户登陆.png)
 
 # 分别访问上述三个接口：
 
 `/hello`接口正常
-![hello接口正常](Spring-security-授权/hello接口正常.png)
+![hello接口正常](Spring-Security-2-授权/hello接口正常.png)
 `/user/hello`接口正常
-![/user/hello接口正常](Spring-security-授权/helloUser正常.png)
+![/user/hello接口正常](Spring-Security-2-授权/helloUser正常.png)
 `/admin/hello`接口404
-![/admin/hello接口404](Spring-security-授权/helloAdmin报错.png)
+![/admin/hello接口404](Spring-Security-2-授权/helloAdmin报错.png)
 
 # admin登陆测试
 
 logout后用`admin`角色用户 `Alex` / 123 重新登陆访问上述三个接口， 发现
 
 `/hello`接口正常
-![hello接口正常](Spring-security-授权/hello接口正常.png)
+![hello接口正常](Spring-Security-2-授权/hello接口正常.png)
 `/user/hello`接口正常
-![helloUser接口403](Spring-security-授权/helloUser接口403.png)
+![helloUser接口403](Spring-Security-2-授权/helloUser接口403.png)
  /admin/hello接口访问正常
-![helloAdmin访问正常](Spring-security-授权/helloAdmin访问正常.png)
+![helloAdmin访问正常](Spring-Security-2-授权/helloAdmin访问正常.png)
 
 测试完反观前面的规划， 前三跳满足了， 但是第4条：所有 user 能够访问的资源，admin 都能够访问 (上级自动拥有下级权限。) 显然还没有实现(/user/hello接口403错误可以看出。)
 要实现所有 user 能够访问的资源，admin 都能够访问，这涉及到另外一个知识点，叫做角色继承。 这在实际开发中非常有用。
@@ -184,4 +192,4 @@ public class HelloController {
 ```
 # 测试:
 配置完成后，重启项目测试，此时我们发现 **`admin`** 也能访问 /user/hello 这个接口了。
-![admin继承了user角色的权限](Spring-security-授权/admin继承了user角色的权限.png)
+![admin继承了user角色的权限](Spring-Security-2-授权/admin继承了user角色的权限.png)
